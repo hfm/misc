@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Save to Pinboard</h1>
+    
+    <div class="form-group">
+      <label for="api-token">API Token:</label>
+      <input type="password" id="api-token" placeholder="Enter your Pinboard API token">
+    </div>
+    
+    <div class="form-group">
+      <label for="url">URL:</label>
+      <input type="text" id="url" readonly>
+    </div>
+    
+    <div class="form-group">
+      <label for="title">Title:</label>
+      <input type="text" id="title">
+    </div>
+    
+    <div class="form-group">
+      <label for="description">Description:</label>
+      <textarea id="description" rows="3"></textarea>
+    </div>
+    
+    <div class="form-group">
+      <label for="tags">Tags:</label>
+      <input type="text" id="tags" placeholder="tag1 tag2 tag3">
+    </div>
+    
+    <div class="form-group checkbox-row">
+      <label>
+        <input type="checkbox" id="private"> Private
+      </label>
+      <label>
+        <input type="checkbox" id="toread"> Read later
+      </label>
+    </div>
+    
+    <div class="buttons">
+      <button id="save-btn">Save</button>
+      <button id="cancel-btn">Cancel</button>
+    </div>
+    
+    <div id="status" class="status"></div>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>
