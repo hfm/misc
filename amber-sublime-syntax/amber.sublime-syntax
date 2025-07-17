@@ -1,0 +1,369 @@
+%YAML 1.2
+---
+name: Amber
+scope: source.amber
+version: 2
+
+file_extensions:
+  - ab
+
+first_line_match: |-
+  ^#!/.*\bamber\b
+
+variables:
+  identifier_start: '[[:alpha:]_]'
+  identifier_part: '[[:alnum:]_]'
+  identifier: '{{identifier_start}}{{identifier_part}}*'
+  
+  decimal_digit: '[0-9]'
+  decimal_number: '{{decimal_digit}}+(?:\.{{decimal_digit}}+)?'
+  
+  string_escape: '\\(?:[\\"/bfnrt]|u[0-9a-fA-F]{4})'
+
+contexts:
+  main:
+    - include: comments
+    - include: shebang
+    - include: compiler_attributes
+    - include: import_statements
+    - include: main_block
+    - include: function_definitions
+    - include: statements
+
+  prototype:
+    - include: comments
+
+  comments:
+    - match: '//'
+      scope: punctuation.definition.comment.amber
+      push: line_comment
+    - match: '///'
+      scope: punctuation.definition.comment.documentation.amber
+      push: doc_comment
+
+  line_comment:
+    - meta_scope: comment.line.double-slash.amber
+    - match: $
+      pop: true
+
+  doc_comment:
+    - meta_scope: comment.line.documentation.amber
+    - match: $
+      pop: true
+
+  shebang:
+    - match: '^#!.*$'
+      scope: comment.line.shebang.amber
+
+  compiler_attributes:
+    - match: '#\['
+      scope: punctuation.definition.attribute.begin.amber
+      push: attribute_content
+
+  attribute_content:
+    - meta_scope: meta.attribute.amber
+    - match: '\]'
+      scope: punctuation.definition.attribute.end.amber
+      pop: true
+    - match: '{{identifier}}'
+      scope: entity.other.attribute-name.amber
+
+  import_statements:
+    - match: '\b(pub\s+)?import\b'
+      scope: keyword.control.import.amber
+      push: import_content
+
+  import_content:
+    - match: '\{'
+      scope: punctuation.section.braces.begin.amber
+      push: import_list
+    - match: '\*'
+      scope: constant.other.wildcard.amber
+    - match: '\bfrom\b'
+      scope: keyword.control.import.amber
+    - match: '"'
+      scope: punctuation.definition.string.begin.amber
+      push: string_double
+    - match: $
+      pop: true
+
+  import_list:
+    - match: '\}'
+      scope: punctuation.section.braces.end.amber
+      pop: true
+    - match: '{{identifier}}'
+      scope: variable.other.import.amber
+    - match: '\bas\b'
+      scope: keyword.control.import.amber
+    - match: ','
+      scope: punctuation.separator.amber
+
+  main_block:
+    - match: '\bmain\b'
+      scope: entity.name.function.main.amber
+      push: main_parameters
+
+  main_parameters:
+    - match: '\('
+      scope: punctuation.section.parameters.begin.amber
+      push: parameter_list
+    - match: '\{'
+      scope: punctuation.section.block.begin.amber
+      push: function_body
+    - match: (?=\{)
+      push: function_body
+
+  function_definitions:
+    - match: '\b(pub\s+)?fun\b'
+      scope: storage.type.function.amber
+      push: function_signature
+
+  function_signature:
+    - match: '{{identifier}}'
+      scope: entity.name.function.amber
+      set: function_parameters
+
+  function_parameters:
+    - match: '\('
+      scope: punctuation.section.parameters.begin.amber
+      push: parameter_list
+    - match: ':'
+      scope: punctuation.separator.type.amber
+      push: type_annotation
+    - match: '\{'
+      scope: punctuation.section.block.begin.amber
+      push: function_body
+
+  parameter_list:
+    - match: '\)'
+      scope: punctuation.section.parameters.end.amber
+      pop: true
+    - match: '\bref\b'
+      scope: storage.modifier.amber
+    - match: '{{identifier}}'
+      scope: variable.parameter.amber
+    - match: ':'
+      scope: punctuation.separator.type.amber
+      push: type_annotation
+    - match: ','
+      scope: punctuation.separator.amber
+
+  type_annotation:
+    - match: '\b(Text|Num|Bool|Null)\b'
+      scope: storage.type.amber
+      pop: true
+    - match: '\['
+      scope: punctuation.section.brackets.begin.amber
+      push: array_type
+    - match: '\?'
+      scope: punctuation.definition.optional.amber
+      pop: true
+    - match: '(?=\s*[\),\{])'
+      pop: true
+
+  array_type:
+    - match: '\]'
+      scope: punctuation.section.brackets.end.amber
+      pop: true
+    - match: '\b(Text|Num|Bool|Null)\b'
+      scope: storage.type.amber
+
+  function_body:
+    - meta_scope: meta.function.body.amber
+    - match: '\}'
+      scope: punctuation.section.block.end.amber
+      pop: true
+    - include: statements
+
+  statements:
+    - include: control_flow
+    - include: variable_declarations
+    - include: command_blocks
+    - include: expressions
+
+  control_flow:
+    - match: '\b(if|else|then|for|loop|break|continue|return)\b'
+      scope: keyword.control.amber
+    - match: '\bin\b'
+      scope: keyword.operator.in.amber
+    - match: '\b(failed|fail|status)\b'
+      scope: keyword.control.exception.amber
+    - match: '\{(?=\s*$)'
+      scope: punctuation.section.block.begin.amber
+      push: control_block
+
+  control_block:
+    - meta_scope: meta.block.amber
+    - match: '\}'
+      scope: punctuation.section.block.end.amber
+      pop: true
+    - include: statements
+
+  variable_declarations:
+    - match: '\b(let|const)\b'
+      scope: storage.type.variable.amber
+      push: variable_declaration
+
+  variable_declaration:
+    - match: '{{identifier}}'
+      scope: variable.other.amber
+    - match: '='
+      scope: keyword.operator.assignment.amber
+      set: expression_context
+    - match: ':'
+      scope: punctuation.separator.type.amber
+      push: type_annotation
+    - match: '(?=\s*$)'
+      pop: true
+
+  command_blocks:
+    - match: '\b(silent|trust)\b'
+      scope: storage.modifier.command.amber
+    - match: '\$'
+      scope: punctuation.definition.command.begin.amber
+      push: command_content
+
+  command_content:
+    - meta_scope: meta.command.amber
+    - match: '\$'
+      scope: punctuation.definition.command.end.amber
+      pop: true
+    - match: '\?'
+      scope: keyword.operator.error-propagation.amber
+    - include: string_interpolation
+    - match: '[^$\{\}]+'
+      scope: string.unquoted.command.amber
+
+  expressions:
+    - include: literals
+    - include: operators
+    - include: function_calls
+    - include: array_access
+    - include: parentheses
+    - include: identifiers
+
+  expression_context:
+    - include: expressions
+    - match: '(?=\s*$)'
+      pop: true
+
+  literals:
+    - include: numbers
+    - include: strings
+    - include: booleans
+    - include: null_literal
+    - include: arrays
+    - include: ranges
+
+  numbers:
+    - match: '{{decimal_number}}'
+      scope: constant.numeric.amber
+
+  strings:
+    - match: '"'
+      scope: punctuation.definition.string.begin.amber
+      push: string_double
+
+  string_double:
+    - meta_scope: string.quoted.double.amber
+    - match: '"'
+      scope: punctuation.definition.string.end.amber
+      pop: true
+    - match: '{{string_escape}}'
+      scope: constant.character.escape.amber
+    - include: string_interpolation
+
+  string_interpolation:
+    - match: '\{'
+      scope: punctuation.section.interpolation.begin.amber
+      push: interpolation_content
+
+  interpolation_content:
+    - meta_scope: meta.interpolation.amber
+    - meta_content_scope: source.amber.embedded
+    - match: '\}'
+      scope: punctuation.section.interpolation.end.amber
+      pop: true
+    - include: expressions
+
+  booleans:
+    - match: '\b(true|false)\b'
+      scope: constant.language.boolean.amber
+
+  null_literal:
+    - match: '\bnull\b'
+      scope: constant.language.null.amber
+
+  arrays:
+    - match: '\['
+      scope: punctuation.section.brackets.begin.amber
+      push: array_content
+
+  array_content:
+    - meta_scope: meta.array.amber
+    - match: '\]'
+      scope: punctuation.section.brackets.end.amber
+      pop: true
+    - match: ','
+      scope: punctuation.separator.amber
+    - include: expressions
+
+  ranges:
+    - match: '\.\.='
+      scope: keyword.operator.range.inclusive.amber
+    - match: '\.\.'
+      scope: keyword.operator.range.exclusive.amber
+
+  operators:
+    - match: '\+\+|--'
+      scope: keyword.operator.increment-decrement.amber
+    - match: '\+=|-=|\*=|/=|%='
+      scope: keyword.operator.assignment.compound.amber
+    - match: '==|!=|<=|>=|<|>'
+      scope: keyword.operator.comparison.amber
+    - match: '\b(and|or|not)\b'
+      scope: keyword.operator.logical.amber
+    - match: '\b(is)\b'
+      scope: keyword.operator.type.amber
+    - match: '\+|-|\*|/|%'
+      scope: keyword.operator.arithmetic.amber
+    - match: '='
+      scope: keyword.operator.assignment.amber
+    - match: '\?'
+      scope: keyword.operator.error-propagation.amber
+
+  function_calls:
+    - match: '\b(echo|cd|mv|exit|len|lines|nameof)\b(?=\s*[^\s\(])'
+      scope: support.function.builtin.amber
+    - match: '{{identifier}}(?=\s*\()'
+      scope: variable.function.amber
+
+  array_access:
+    - match: '{{identifier}}\['
+      scope: variable.other.amber
+      push: array_index
+
+  array_index:
+    - match: '\]'
+      scope: punctuation.section.brackets.end.amber
+      pop: true
+    - include: expressions
+
+  parentheses:
+    - match: '\('
+      scope: punctuation.section.parens.begin.amber
+      push: parentheses_content
+
+  parentheses_content:
+    - match: '\)'
+      scope: punctuation.section.parens.end.amber
+      pop: true
+    - include: expressions
+
+  identifiers:
+    - match: '\b{{identifier}}\b'
+      scope: variable.other.amber
+
+  keywords:
+    - match: '\b(and|as|break|cd|const|continue|echo|else|exit|fail|failed|for|from|fun|if|import|in|is|len|let|lines|loop|main|mv|nameof|not|or|pub|ref|return|silent|status|then|trust|unsafe)\b'
+      scope: invalid.deprecated.reserved.amber
