@@ -1,0 +1,4 @@
+interface:
+  display_name: "Ask User Question"
+  short_description: "Run structured interviews to clarify requirements"
+  default_prompt: "Use $ask-user-question to interview me and clarify missing requirements before coding."
